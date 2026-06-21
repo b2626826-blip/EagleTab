@@ -32,7 +32,7 @@
 **目標**：Spring Boot + pty4j 能開真實 shell，前後端 WebSocket 連通。
 
 **後端工作**：
-- Java 21 + Spring Boot 3.3.x 專案骨架（`EagleTabApplication`、`WebSocketConfig`）
+- Java 21 + Spring Boot 3.5.15 專案骨架（`EagleTabApplication`、`WebSocketConfig`）
 - 使用 `/ws/terminal` Raw WebSocket 端點，不啟用 SockJS
 - `TerminalWebSocketHandler`（onOpen/onMessage/onClose）
 - `TerminalEngine` + `TerminalSession` + `TerminalSessionRegistry`

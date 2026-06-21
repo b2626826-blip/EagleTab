@@ -29,7 +29,7 @@
 ## 2. 技術棧
 
 **後端**
-- Java 21 / Spring Boot 3.3.x
+- Java 21 / Spring Boot 3.5.15
 - WebSocket（terminal I/O + 結構化訊息）
 - `pty4j`（JetBrains 開源函式庫，開真實 pseudo-terminal）
 

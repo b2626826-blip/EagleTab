@@ -7,9 +7,13 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-// 終端機選擇方法
+/** 依環境設定與作業系統選出可供 PTY 啟動的 Shell 命令。 */
 @Component
 public class ShellResolver {
+
+    /**
+     * 解析 Shell 啟動命令；明確設定的 EAGLETAB_SHELL 優先於平台預設值。
+     */
     public String[] resolve(){
         String override = System.getenv("EAGLETAB_SHELL");
         if(override != null && !override.isBlank()) {
@@ -21,10 +25,13 @@ public class ShellResolver {
         }  
 
         String shell = System.getenv("SHELL");
+        // Unix-like 系統以登入 Shell 啟動，載入使用者原有的 Shell 環境。
         return new String[] {
             shell == null || shell.isBlank() ? "/bin/zsh" : shell, "-l"
         };
     }
+
+    /** 按支援優先順序尋找 Windows Shell，並組成適合的啟動參數。 */
     private String[] resolveWindowShell() {
         for (String candidate : List.of("pwsh.exe", "powershell.exe", "cmd.exe")) {
             String executable = findOnPath(candidate);
@@ -36,6 +43,7 @@ public class ShellResolver {
         throw new IllegalStateException("未找到支援的終端機");
     }
 
+    /** 在 PATH 的各個目錄中尋找指定的可執行檔，找到時回傳完整路徑。 */
     private String findOnPath(String executable) {
         String pathValue = System.getenv("PATH");
         if (pathValue == null) {

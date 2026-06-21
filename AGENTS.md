@@ -31,7 +31,26 @@
 - 跑最小且直接相關的測試、lint 或 build。
 - 完成後更新 `agent-handoff.md`，再交由 Claude Code 審核。
 
+## 專案基線
+
+- 後端位於 `backend/`：Java 21、Spring Boot 3.5.15、Maven Wrapper、pty4j 0.12.26。
+- 前端位於 `frontend/`：React 18.3、TypeScript 5.6、Vite 5.4。
+- M1 WebSocket 端點為 `/ws/terminal`，使用 Raw WebSocket，不啟用 SockJS。
+- `terminal_input.data` 是 UTF-8 輸入；`terminal_output.data` 是 PTY raw bytes 的 Base64 字串。
+- Windows shell fallback：`pwsh.exe`、`powershell.exe`、`cmd.exe`；`EAGLETAB_SHELL` 可覆寫。
+- 後端驗證：在 `backend/` 執行 `.\mvnw.cmd clean test`。
+- 前端驗證：在 `frontend/` 執行 `npm.cmd run lint` 與 `npm.cmd run build`。
+
+版本、協定或路徑調整時，必須同步更新 `docs/` 內相關架構文件與 `agent-handoff.md`。
+
 ## 審核要求（Claude Code）
+
+開始審核前，同時檢查：
+
+- `origin/main..HEAD` 的本地提交。
+- working tree 的 tracked diff。
+- untracked files；不能只看 `git diff`，以免漏掉新模組。
+- `agent-handoff.md` 列出的已跑與未跑驗證。
 
 依序檢查：
 

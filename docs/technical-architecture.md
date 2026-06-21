@@ -26,7 +26,7 @@
 | 技術 | 版本 | 用途 |
 |---|---|---|
 | Java | 21 | 主語言（Virtual Threads） |
-| Spring Boot | 3.3.x | Web 框架 |
+| Spring Boot | 3.5.15 | Web 框架 |
 | Spring WebSocket | 隨 Boot | Raw WebSocket 端點 |
 | pty4j | 0.12.26 | 真實 pseudo-terminal（JetBrains） |
 | JNA | 5.x（傳遞） | pty4j native bridge |
