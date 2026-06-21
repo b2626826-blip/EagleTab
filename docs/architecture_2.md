@@ -62,14 +62,16 @@
 └──────────────────────────────────────────────────────┘
 ```
 
-核心邏輯：**AI CLI 在 terminal 裡正常執行（跟你平常用 iTerm 一樣），後端額外監看輸出內容，偵測到值得預覽的東西就通知前端在 Sidecar 開啟。**
+核心邏輯：**AI CLI 在平台原生 terminal 裡正常執行，後端額外監看輸出內容，偵測到值得預覽的東西就通知前端在 Sidecar 開啟。**
 
 ---
 
 ## 4. 核心模組
 
 ### 4.1 Terminal Engine（後端）
-- 用 `pty4j` 開一個真實的 shell process（bash/zsh）
+- 用 `pty4j` 開一個平台原生 shell process
+- shell 解析順序：`EAGLETAB_SHELL` 覆寫；Windows 依序使用 `pwsh.exe`、`powershell.exe`、`cmd.exe`；macOS 使用 `$SHELL`，未設定時使用 `/bin/zsh`
+- Git Bash 是 Windows 的可選覆寫，不是必要依賴
 - 一個 WebSocket session ↔ 一個 PTY process
 - stdin 從前端來，stdout/stderr 往兩個方向送：
   1. 原樣轉發給前端 xterm.js（保證 terminal 本身行為完全正常）
@@ -120,14 +122,14 @@
 
 ## 7. MVP 開發步驟（每步可驗證）
 
-1. **基礎終端機**：Spring Boot + pty4j 開真實 shell，前端 xterm.js 顯示
-   → 驗證：能打 `ls`、`cd` 看到真實輸出
+1. **基礎終端機**：Spring Boot + pty4j 開平台原生 shell，前端 xterm.js 顯示
+   → 驗證：Windows 能執行 `Get-ChildItem`、`cd`；macOS 能執行 `ls`、`cd`
 2. **訊息協定與可用終端機**：把 terminal I/O 與 resize 包成結構化 WebSocket 訊息，接通 xterm.js
-   → 驗證：可操作 `vim`、方向鍵與 ANSI 色彩，視窗縮放後 PTY 尺寸正確
+   → 驗證：可操作已安裝的全螢幕互動式 CLI、方向鍵與 ANSI 色彩，視窗縮放後 PTY 尺寸正確
 3. **三欄式骨架**：Navigator（假資料）+ TerminalView + Sidecar（空白佔位）
    → 驗證：版面排版正確，resize 正常
 4. **輸出偵測（先做兩種）**：檔案路徑 + localhost URL 偵測，送出 `sidecar_suggestion`
-   → 驗證：在 terminal 跑 `echo "$PWD/report.md"` 或 `python3 -m http.server`，能正確收到事件
+   → 驗證：Windows 以 PowerShell 輸出 `Join-Path (Get-Location) 'report.md'` 並執行 `py -m http.server`；macOS 輸出 `$PWD/report.md` 並執行 `python3 -m http.server`，兩者都能正確收到事件
 5. **Sidecar 渲染**：Markdown、圖片、PDF、localhost iframe viewer，收到事件自動開啟
    → 驗證：上一步偵測到的東西真的能在右側看到內容
 6. **Git diff viewer**：偵測並渲染 raw diff，完成 v1

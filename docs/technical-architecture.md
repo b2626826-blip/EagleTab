@@ -11,7 +11,7 @@
 |---|---|
 | 主要用途 | 自用開發工具 + 作品集展示 |
 | 使用者規模 | 單人，不做多租戶 |
-| 終端機 | 真實 shell（bash/zsh，可執行系統指令） |
+| 終端機 | 平台原生 shell（Windows：PowerShell；macOS：使用者 shell，可執行系統指令） |
 | AI 整合 | CLI 委派——使用者直接在 terminal 跑 `claude` / `codex` / `aider` |
 | 安全模型 | 不做 Docker 沙盒（v1），不做 SSH/Serial |
 | 持久化 | 不做，記憶體存即可，重開頁面 session 斷掉可接受 |
@@ -80,7 +80,7 @@
 │                         SidecarNotifier ──→ 前端 sidecar_suggestion
 └──────────────────────────────────────────────────────────────┘
                            │
-                    真實 OS shell process (bash/zsh)
+                    平台原生 OS shell process
 ```
 
 **核心概念**：AI CLI 在 terminal 裡正常執行，後端額外監看 stdout，偵測到值得預覽的內容就即時推送給前端 Sidecar 自動渲染。
@@ -135,14 +135,23 @@ com.eagletab
 
 ### 5.2 Terminal Engine（pty4j 整合）
 
+**Shell 選擇規則**：
+
+1. 若設定 `EAGLETAB_SHELL`，使用其指定的 shell 絕對路徑。
+2. Windows 依序尋找 `pwsh.exe`、`powershell.exe`、`cmd.exe`。
+3. macOS 優先使用 `$SHELL`，未設定時使用 `/bin/zsh`。
+
+shell 與啟動參數以字串陣列傳入 `PtyProcessBuilder`，不拼接成單一命令字串。Windows 使用 `-NoLogo` 啟動 PowerShell；macOS 使用 `-l` 啟動 login shell。Git Bash 可透過 `EAGLETAB_SHELL` 選用，但不是 Windows 預設依賴。
+
 ```java
 // TerminalEngine.java 核心片段
-public TerminalSession createSession(WebSocketSession wsSession, String shell) {
+public TerminalSession createSession(WebSocketSession wsSession) {
     Map<String, String> env = new HashMap<>(System.getenv());
     env.put("TERM", "xterm-256color");
     env.put("COLORTERM", "truecolor");
 
-    PtyProcess pty = new PtyProcessBuilder(new String[]{shell})
+    String[] shellCommand = shellResolver.resolve();
+    PtyProcess pty = new PtyProcessBuilder(shellCommand)
         .setEnvironment(env)
         .setInitialColumns(220)   // ponytail: 220 cols 避免 AI CLI 誤換行干擾偵測
         .setInitialRows(50)
@@ -459,7 +468,7 @@ shell process (stdout)
 | AI CLI 進度列 `\r` 重繪 | 行緩衝累積大量假行，干擾偵測 | 行切割邏輯同時認 `\r`，偵測端做 dedup |
 | multi-byte UTF-8 跨 chunk 截斷 | replacement character 出現 | 使用 `CharsetDecoder` 累積至完整行再解碼 |
 | WebSocketSession 非 thread-safe | 並發 send 造成 IllegalStateException | 用 `ConcurrentWebSocketSessionDecorator` 包裝 |
-| pty4j native lib 找不到 | UnsatisfiedLinkError，無法開 PTY | 確認 jar 包含 `darwin-aarch64` native，或設 `-Dpty4j.preferred.native.folder` |
+| pty4j native lib 找不到 | UnsatisfiedLinkError，無法開 PTY | 確認 jar 包含目前 Windows/macOS 架構對應的 native library，或設 `-Dpty4j.preferred.native.folder` |
 | /api/files path traversal | 讀取根目錄外檔案 | `Path.normalize()` + `startsWith(root)` + 副檔名白名單，見 5.5 |
 | PTY cols 太小（80） | AI CLI 誤換行，干擾檔案路徑偵測 | 初始 220 cols，前端啟動後立即送 resize |
 | process orphan（Spring 異常停止） | PTY child process 殘留 | `@PreDestroy` + JVM shutdown hook 呼叫 `destroyAll()` |
@@ -480,6 +489,16 @@ shell process (stdout)
 ## 九、開發環境設置
 
 ### 後端啟動
+
+Windows PowerShell：
+```powershell
+cd eagletab-backend
+.\mvnw.cmd spring-boot:run
+# 後端監聽 http://localhost:8080
+# WebSocket 端點：ws://localhost:8080/ws/terminal
+```
+
+macOS：
 ```bash
 cd eagletab-backend
 ./mvnw spring-boot:run

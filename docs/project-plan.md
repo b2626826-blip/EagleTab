@@ -12,9 +12,9 @@
 
 ## 二、成功標準（v1 定義）
 
-- [ ] 在瀏覽器裡能打 `ls`、`cd`、`vim`，行為與 iTerm 相同
+- [ ] Windows 使用 PowerShell、macOS 使用使用者 shell，均能執行平台原生命令與互動式 CLI
 - [ ] 在 terminal 跑 `claude` / `codex`，輸出的 `.md` 檔案路徑自動在 Sidecar 渲染 Markdown
-- [ ] 在 terminal 執行 `python3 -m http.server`，Sidecar 自動嵌入 iframe 顯示 localhost 頁面
+- [ ] 在 terminal 啟動 Python HTTP server（Windows：`py`；macOS：`python3`），Sidecar 自動嵌入 iframe 顯示 localhost 頁面
 - [ ] 在 terminal 執行 `git diff`，Sidecar 自動顯示 diff viewer
 - [ ] terminal 輸出圖片或 PDF 路徑時，Sidecar 自動顯示對應 viewer
 - [ ] 三欄版面在視窗縮放時正常伸縮
@@ -36,6 +36,7 @@
 - 使用 `/ws/terminal` Raw WebSocket 端點，不啟用 SockJS
 - `TerminalWebSocketHandler`（onOpen/onMessage/onClose）
 - `TerminalEngine` + `TerminalSession` + `TerminalSessionRegistry`
+- `ShellResolver`：支援 `EAGLETAB_SHELL` 覆寫；Windows 依序選擇 `pwsh.exe`、`powershell.exe`、`cmd.exe`；macOS 選擇 `$SHELL` 或 `/bin/zsh`
 - `PtyOutputRouter`：只做 raw forward，不做偵測
 
 **前端工作**：
@@ -47,8 +48,9 @@
 ```bash
 # 後端
 websocat ws://localhost:8080/ws/terminal
-# 送 { "type": "terminal_input", "data": "ls\n" }
-# 收到 terminal_output 含 ls 結果的 Base64 字串
+# Windows 送 { "type": "terminal_input", "data": "Get-ChildItem\r\n" }
+# macOS 送 { "type": "terminal_input", "data": "ls\n" }
+# 收到 terminal_output 含命令結果的 Base64 字串
 
 # 前端
 console.log(msg) 顯示 { type: "terminal_output", data: "<base64>" }
@@ -74,11 +76,11 @@ console.log(msg) 顯示 { type: "terminal_output", data: "<base64>" }
 **驗證**：
 ```bash
 # 瀏覽器開頁面
-# 打 vim → 游標正常、方向鍵正常、顏色正常（ANSI 256 color）
+# 執行已安裝的全螢幕互動式 CLI → 游標、方向鍵與 ANSI 色彩正常
 # 視窗縮放 → 終端機自動適應，不出現截斷或偏移
 ```
 
-**完成條件**：終端機行為與 iTerm 一致。
+**完成條件**：Windows PowerShell 與 macOS 使用者 shell 的互動行為均正常。
 
 ---
 
@@ -121,6 +123,19 @@ console.log(msg) 顯示 { type: "terminal_output", data: "<base64>" }
 - `Sidecar` 元件讀取 store，console.log 顯示收到的事件
 
 **驗證**：
+
+Windows PowerShell：
+```powershell
+$testFile = Join-Path $env:TEMP 'test.md'
+$testFile
+py -m http.server 8000
+
+# 前端 console 應出現對應的絕對路徑及 URL
+{ type: "sidecar_suggestion", kind: "file", payload: "<Windows temp 絕對路徑>\\test.md" }
+{ type: "sidecar_suggestion", kind: "url",  payload: "http://localhost:8000" }
+```
+
+macOS：
 ```bash
 # 在 terminal 執行
 echo /tmp/test.md
@@ -153,6 +168,21 @@ python3 -m http.server 8000
 - 限制 Sidecar 只能處理偵測規則允許的檔案類型
 
 **驗證**：
+
+Windows PowerShell：
+```powershell
+(Resolve-Path .\README.md).Path
+# Sidecar 自動顯示渲染後的 Markdown
+
+(Resolve-Path .\screenshot.png).Path
+(Resolve-Path .\spec.pdf).Path
+# Sidecar 自動顯示圖片與 PDF
+
+py -m http.server 3000
+# Sidecar 自動顯示 localhost:3000 的 iframe
+```
+
+macOS：
 ```bash
 # 在 terminal 輸出檔案路徑
 echo "$PWD/README.md"
