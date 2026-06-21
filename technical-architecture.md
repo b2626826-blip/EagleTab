@@ -115,6 +115,8 @@ com.eagletab
 ├── config/
 │   ├── WebSocketConfig.java          # 端點註冊，CORS origin 設定
 │   └── AppConfig.java
+├── files/
+│   └── FileController.java           # GET /api/files?path=（安全限制見 5.5）
 ├── terminal/
 │   ├── TerminalEngine.java           # pty4j 初始化、session 工廠
 │   ├── TerminalSession.java          # 持有 PtyProcess + WebSocketSession
@@ -223,7 +225,49 @@ WebSocketSession safe = new ConcurrentWebSocketSessionDecorator(
 
 `WebSocketSession.sendMessage()` 非 thread-safe，使用 `ConcurrentWebSocketSessionDecorator` 解決 PTY reader thread 與 DetectionEngine 並發推送問題。
 
-### 5.5 pom.xml 關鍵依賴
+### 5.5 File Serving API
+
+Sidecar viewer 需要取得本機檔案內容，後端提供一個最小 REST 端點：
+
+```
+GET /api/files?path=<絕對路徑>
+```
+
+**安全限制**（實作時必須全部到位）：
+
+| 規則 | 做法 |
+|---|---|
+| 根目錄限制 | 只允許 `System.getProperty("user.home")` 以下的路徑 |
+| 副檔名白名單 | `md, txt, png, jpg, jpeg, gif, webp, svg, pdf` |
+| Path traversal 防護 | `Path.of(path).normalize()` 後確認仍在根目錄內（`startsWith`） |
+| Symlink 防護 | `Files.readSymbolicLink` 後再做根目錄確認，或直接拒絕 symlink |
+
+**回傳格式**：依副檔名設定正確 `Content-Type`，直接串流檔案位元組。
+
+```java
+// FileController.java 核心片段
+@GetMapping("/api/files")
+public ResponseEntity<Resource> serveFile(@RequestParam String path) throws IOException {
+    Path target = Path.of(path).normalize().toAbsolutePath();
+    Path root   = Path.of(System.getProperty("user.home")).toAbsolutePath();
+    if (!target.startsWith(root)) return ResponseEntity.status(403).build();
+    String ext = /* 取副檔名 */;
+    if (!ALLOWED_EXTENSIONS.contains(ext)) return ResponseEntity.status(403).build();
+    return ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(mimeFor(ext)))
+        .body(new FileSystemResource(target));
+}
+```
+
+**前端 Viewer 取用方式**：
+
+| Viewer | 做法 |
+|---|---|
+| MarkdownViewer | `fetch("/api/files?path=…")` → text → react-markdown |
+| ImageViewer | `<img src="/api/files?path=…">` |
+| PdfViewer | `<Document file="/api/files?path=…">` |
+
+### 5.6 pom.xml 關鍵依賴
 
 ```xml
 <dependency>
@@ -416,6 +460,7 @@ shell process (stdout)
 | multi-byte UTF-8 跨 chunk 截斷 | replacement character 出現 | 使用 `CharsetDecoder` 累積至完整行再解碼 |
 | WebSocketSession 非 thread-safe | 並發 send 造成 IllegalStateException | 用 `ConcurrentWebSocketSessionDecorator` 包裝 |
 | pty4j native lib 找不到 | UnsatisfiedLinkError，無法開 PTY | 確認 jar 包含 `darwin-aarch64` native，或設 `-Dpty4j.preferred.native.folder` |
+| /api/files path traversal | 讀取根目錄外檔案 | `Path.normalize()` + `startsWith(root)` + 副檔名白名單，見 5.5 |
 | PTY cols 太小（80） | AI CLI 誤換行，干擾檔案路徑偵測 | 初始 220 cols，前端啟動後立即送 resize |
 | process orphan（Spring 異常停止） | PTY child process 殘留 | `@PreDestroy` + JVM shutdown hook 呼叫 `destroyAll()` |
 

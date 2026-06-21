@@ -149,7 +149,7 @@ python3 -m http.server 8000
 - `Sidecar` 接通 store，收到事件自動 mount 對應 viewer
 
 **後端工作**：
-- 依 `technical-architecture.md` 的 `sidecar_suggestion` 協定提供 file payload
+- `FileController`：`GET /api/files?path=`（user.home 根目錄限制、副檔名白名單、path traversal 防護，細節見 `technical-architecture.md` 5.5）
 - 限制 Sidecar 只能處理偵測規則允許的檔案類型
 
 **驗證**：
@@ -201,7 +201,7 @@ git diff
 
 | 功能 | 優先度 | 說明 |
 |---|---|---|
-| Navigator 接真實檔案系統 | 高 | 後端新增 `/api/files` REST endpoint |
+| Navigator 接真實檔案系統 | 高 | 後端新增目錄列表 API（`/api/files/list?path=`），與 v1 的檔案內容端點分開 |
 | 多終端機分頁 | 中 | `TerminalTabs` + 多 session 管理 |
 | Session 持久化 | 低 | 重開頁面保留 terminal 歷史 |
 | Docker 沙盒隔離 | 低 | 公開展示時需要 |
