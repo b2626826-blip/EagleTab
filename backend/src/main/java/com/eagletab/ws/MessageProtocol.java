@@ -7,8 +7,8 @@ public final class MessageProtocol {
     private MessageProtocol() {
     }
 
-    /** 前端送往後端的訊息，type 表示操作種類，data 保存操作內容。 */
-    public record ClientMessage(String type, String data) {
+    /** 前端送往後端的訊息，type 表示操作種類，data 或尺寸欄位保存操作內容。 */
+    public record ClientMessage(String type, String data, Integer cols, Integer rows) {
     }
 
     /** 後端送往前端的終端機輸出；data 為 Base64 編碼的原始 PTY 位元組。 */
