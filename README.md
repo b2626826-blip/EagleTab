@@ -76,17 +76,6 @@ npm run dev
 
 `terminal_output.data` 用 Base64 是因為 PTY 輸出含不合法 UTF-8 與控制字元，JSON text frame 無法直接安全傳輸。
 
-## 里程碑
-
-| 里程碑 | 目標 | 狀態 |
-|---|---|---|
-| M1 | 後端可連 shell，前後端 WebSocket 連通 | **完成** |
-| M2 | 前端 xterm.js 終端機可用 | 未開始 |
-| M3 | 三欄版面骨架 | 未開始 |
-| M4 | 輸出偵測（檔案 / URL）上線 | 未開始 |
-| M5 | Sidecar 自動渲染各 Viewer | 未開始 |
-| M6 | git diff viewer，MVP 完整 | 未開始 |
-
 ## 文件
 
 | 檔案 | 說明 |
