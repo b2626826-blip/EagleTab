@@ -7,7 +7,6 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
 import com.pty4j.PtyProcess;
-import com.pty4j.WinSize;
 
 /** 封裝單一 WebSocket 連線及其 PTY，提供輸入、輸出與關閉所需操作。 */
 public class TerminalSession {
@@ -43,10 +42,6 @@ public class TerminalSession {
     public void write(String data) throws IOException {
         ptyProcess.getOutputStream().write(data.getBytes(StandardCharsets.UTF_8));
         ptyProcess.getOutputStream().flush();
-    }
-
-    public void resize(int cols, int rows) {
-        ptyProcess.setWinSize(new WinSize(cols, rows));
     }
 
     /** 強制終止工作階段所持有的 PTY 程序。 */

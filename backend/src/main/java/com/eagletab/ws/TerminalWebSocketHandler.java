@@ -47,24 +47,16 @@ public class TerminalWebSocketHandler extends TextWebSocketHandler {
                 ClientMessage.class
         );
 
+        if (!"terminal_input".equals(clientMessage.type())) {
+            return;
+        }
+
         TerminalSession terminalSession = registry.get(session.getId());
         if (terminalSession == null) {
             throw new IllegalStateException("Terminal session not found");
         }
 
-        if ("terminal_input".equals(clientMessage.type())) {
-            terminalSession.write(clientMessage.data());
-            return;
-        }
-
-        if ("terminal_resize".equals(clientMessage.type())) {
-            if (clientMessage.cols() != null
-                    && clientMessage.rows() != null
-                    && clientMessage.cols() > 0
-                    && clientMessage.rows() > 0) {
-                        terminalSession.resize(clientMessage.cols(), clientMessage.rows());
-                    }
-        }
+        terminalSession.write(clientMessage.data());
     }
 
     @Override

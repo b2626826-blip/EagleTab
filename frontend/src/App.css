@@ -40,3 +40,9 @@
 .read-the-docs {
   color: #888;
 }
+
+.terminal-view {
+  width: min(1200px, calc(100vw - 4rem));
+  height: 70vh;
+  text-align: left;
+}

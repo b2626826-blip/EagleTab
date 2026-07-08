@@ -4,7 +4,7 @@
 
 - 實作方：Codex
 - 審核方：Claude Code
-- 狀態：M1 複審通過，已 commit
+- 狀態：M1 複審通過（2026-07-06 範圍修正複審）
 
 Codex 完成實作與驗證後，必須填寫以下內容並將狀態改為「等待 Claude Code 審核」。Claude Code 審核期間，Codex 不得修改相同檔案。
 
@@ -254,3 +254,70 @@ CRITICAL 拼寫錯誤必須優先修正，再進行其他 findings。**請交回
 - 已跑：`git status --short --branch`、`git diff`、里程碑與關鍵規格 `rg` 搜尋、三份文件人工核對。
 - 結果：Java 21、Raw WebSocket、`terminal_resize`、Sidecar viewer v1 範圍與六個里程碑維持一致；未發現 `Java 17` 或 `.withSockJS()` 舊描述。
 - 未跑：build、lint、unit test；目前只有 Markdown 文件與 Git 設定，沒有程式碼或建置設定。
+
+---
+
+## Codex 修正交接（2026-07-06，撤回誤混入 M1 的 M2 內容）
+
+**狀態**：等待 Claude Code 審核。
+
+### 修正目標
+
+- `ebc3f69` 以 `finish m1` 加入部分 M2 功能，但 `docs/project-plan.md` 明定 xterm.js、FitAddon 與 `terminal_resize` 屬於 M2。
+- 不重寫已推送的 Git 歷史；以目前 working tree 撤回該 commit 中超出 M1 的程式與依賴。
+
+### 修改內容
+
+- 後端移除 `terminal_resize` handler 分支、`ClientMessage` 尺寸欄位與 `TerminalSession.resize()`。
+- 前端移除未使用且拼字錯誤的 `TerminalResizeMessage`。
+- `package.json` 與 `package-lock.json` 移除尚未使用的 `@xterm/xterm`、`@xterm/addon-fit`。
+- 三份 `docs/` 文件保留既有 M2 協定與里程碑規格，不改寫整體架構規劃。
+
+### 驗證
+
+- 後端：`sh mvnw clean test` 通過，3 tests、0 failures、0 errors、2 skipped，`BUILD SUCCESS`。
+- 前端：`npm ci` 通過；`npm run lint` 通過；`npm run build` 通過，Vite 5.4.21 production build 成功。
+- `git diff --check` 通過。
+- 初次驗證未進入測試：`./mvnw` 缺少 executable bit，前端尚未安裝 `node_modules`；改用 `sh mvnw` 與 `npm ci` 後完成上述驗證。
+
+### 審核範圍與剩餘風險
+
+- 請審核目前 6 個 tracked file diff、此交接紀錄，以及未追蹤的 `.codebase-memory/`；後者是索引產物，不屬本次程式修正。
+- 後端 3 個測試中有 2 個因非 Windows 環境 skipped；Windows PowerShell 端對端路徑本次未重跑。
+- `npm ci` 回報 2 個既有依賴漏洞（1 moderate、1 high）；`npm audit fix --force` 可能升級 breaking version，本次未執行。
+
+---
+
+## Claude Code 複審結果（2026-07-06，M1 範圍修正複審通過）
+
+**狀態**：複審通過，M1 恢復原範圍，可標記完成。
+
+### 逐項確認
+
+- [CRITICAL ✅] agent-handoff.md 流程：已補上 2026-07-06 交接段落，狀態正確標為「等待 Claude Code 審核」。
+- [CRITICAL ✅] terminal_resize / xterm.js 範圍外功能：後端 resize handler 分支、`ClientMessage` 的
+  `cols`/`rows` 欄位、`TerminalSession.resize()` 已全數移除；`frontend/package.json`、
+  `package-lock.json` 的 `@xterm/xterm`、`@xterm/addon-fit` 已移除。以 `git diff bc58e91` 比對，
+  6 個 tracked 檔案已與範圍修正前最後一次通過審核的狀態完全一致（僅 `protocol.ts` 末尾多一個
+  換行符，屬無害差異）。
+- [HIGH ✅] `termianl_resize` 拼字錯誤：隨整個 `TerminalResizeMessage` 型別一併刪除，不再存在。
+- [MEDIUM ✅] resize 缺測試：功能已移除，不再適用。
+- [LOW ✅] 縮排錯亂、缺 Javadoc：隨程式碼一併移除。
+
+### 獨立驗證（Claude Code 重新執行，非採信 Codex 自述）
+
+- `sh mvnw clean test`（backend/）→ BUILD SUCCESS，3 tests、0 failures、0 errors。
+- `npm run lint`（frontend/）→ 無 error。
+- `npm run build`（frontend/）→ Vite 5.4.21 production build 成功。
+
+### 殘留風險（非 M1 blocker）
+
+- Windows PowerShell 端對端整合測試本次未重跑（僅刪除程式碼，風險低）。
+- `npm audit` 既有 2 個依賴漏洞（1 moderate、1 high），維持先前決議不執行 `--force`。
+- `useWebSocket.ts` 的 `onerror`/`onclose` handler、`JSON.parse` try/catch、
+  `handleTextMessage` null 防護等既有 M2 前待辦事項維持不變。
+
+### Tests
+
+- 已跑：`sh mvnw clean test`、`npm run lint`、`npm run build`、`git diff bc58e91` 逐檔比對。
+- 未跑：Windows PowerShell 端對端手動整合測試。
