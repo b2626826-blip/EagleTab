@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "ef3ffbc8b1cbac3b42c1821d56682007cb4a75b0",
-    "indexed_at": "2026-07-08T07:53:28Z",
+    "commit": "b8b8f99ddceb522316be61c56b17a4dfcf84595d",
+    "indexed_at": "2026-07-08T07:55:39Z",
     "project": "Users-eagleaby-Desktop-EagleTab",
-    "nodes": 372,
-    "edges": 490,
+    "nodes": 371,
+    "edges": 489,
     "original_size": 2097152,
-    "compressed_size": 160714,
+    "compressed_size": 160655,
     "compression_level": 3
 }
